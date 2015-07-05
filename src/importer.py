@@ -71,6 +71,8 @@ def import_cert_and_contact(scsv):
 
     reader = csv.reader(scsv.split('\n'), delimiter=',')
     for row in reader:
+        certification_id = ""
+        email = ""
         try:
             geo, \
             region, \
