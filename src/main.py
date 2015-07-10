@@ -1,19 +1,8 @@
 from importer import import_cert_and_contact
-import web
-import json
+import sys
 
-urls = (
-    '/report', 'Report'
-)
+csv_data = ''
+with open(sys.argv[1], 'r') as f:
+    csv_data = f.read()
 
-class Report:
-    def GET(self):
-        return "OK"
-
-    def POST(self):
-        rep = import_cert_and_contact(web.data())
-        return json.dumps(rep,indent=4) + "\n"
-
-if __name__ == "__main__":
-    app = web.application(urls, globals())
-    app.run()
+print import_cert_and_contact(csv_data)
