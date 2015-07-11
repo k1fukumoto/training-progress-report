@@ -173,7 +173,6 @@ def init_cert_by_month(start,end,step,acronyms):
         c += step
     return ret
 
-cc_table = {}
 def build_cert_by_month(scsv,cfgs):
     acronyms = cfgs['cert_acronyms']
 
@@ -194,33 +193,47 @@ def build_cert_by_month(scsv,cfgs):
                         ret[d][a][dkey] += 1
                     elif d < cfgs['date_range']['start']:
                         ret[cfgs['date_range']['start']][a][dkey] += 1
-    cc_table = ret
     return ret
 
 '''
 Report Format
-  Date,VCP,VSP,VTSP
+      ,VCP     ,VCP     ,VCP  ,VSP     ,VSP     ,VSP
+  Date,Attained,Enrolled,ED-AD,Enrolled,Attained,ED-AD
   2015/07/1,10,20,20
   2015/08/1,13,22,23
   2015/09/1,20,30,40
    ...
  ]
 '''
-def import_cert_and_contact(scsv,dkey,cfgs):
-    rep = [','.join(['Date'] + cfgs['cert_acronyms'])]
 
-    cc = cc_table if len(cc_table) > 0 else build_cert_by_month(scsv,cfgs)
+def import_cert_and_contact(scsv,cfgs):
+    rows = []
+    acronyms = cfgs['cert_acronyms']
 
-    prev_cnt = defaultdict(int)
-    for d in sorted(cc):
+    hdr = ['']
+    for a in acronyms:
+        hdr = hdr + [a]*3
+    rows.append(hdr)
+
+    hdr = ['Date']
+    for a in acronyms:
+        hdr = hdr + ['Attained','Enrolled','ED-AD']
+    rows.append(hdr)
+
+    cm_dict = build_cert_by_month(scsv,cfgs)
+
+    prev_cnt = {'ad':defaultdict(int), 'ed':defaultdict(int)}
+    for d in sorted(cm_dict):
         row = [datetime.strftime(d,'%Y/%m/%d')]
-        for a in cfgs['cert_acronyms']:
-            cnt = cc[d][a][dkey] + prev_cnt[a]
-            row.append(str(cnt))
-            prev_cnt[a] = cnt
-        rep.append(','.join(row))
+        for a in acronyms:
+            for dkey in ['ad','ed']:
+                cnt = cm_dict[d][a][dkey] + prev_cnt[dkey][a]
+                row.append(str(cnt))
+                prev_cnt[dkey][a] = cnt
+            row.append(str(prev_cnt['ed'][a]-prev_cnt['ad'][a]))
+        rows.append(row)
 
-    return '\n'.join(rep)
+    return '\n'.join([ ','.join(row) for row in rows])
 
 
 
