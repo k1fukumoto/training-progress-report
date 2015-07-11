@@ -3,7 +3,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 
-
 '''
  Certification ID Map
  {
@@ -83,48 +82,33 @@ def build_cid_map(acronyms):
     return cid_map
 
 '''
- Import Dictionary Format
- {
-   2015/07/01: {
-     'VCP': [passer1, passer2, passer3],
-     'VSP': [passer1, passer2, passer3],
-     'VSTP': [passer1, passer2, passer3],
-   },
-   2015/07/01: {
-     'VCP': [passer1, passer2, passer3],
-     'VSP': [passer1, passer2, passer3],
-     'VSTP': [passer1, passer2, passer3],
-   },
-   2015/07/01: {
-     'VCP': [passer1, passer2, passer3],
-     'VSP': [passer1, passer2, passer3],
-     'VSTP': [passer1, passer2, passer3],
-   }
- }
+Compact Contact-Cert List
+{
+  email1: {
+     VCP: {
+       ad: [date1, date2,...]
+       ed: [data1, date2,...]
+     },
+     VSP: {
+       ad: [date1, date2,...]
+       ed: [data1, date2,...]
+     }
+  },
+  email2: {
+  ...
+  }
 '''
-def init_import_dict(start,end,step,acronyms):
-    impd = defaultdict(dict)
-    c = start
-    while c < end:
-        for a in acronyms:
-            impd[c][a] = set()
-        c += step
-    return impd
-
-def load_cert_and_contact(scsv,acronyms):
-    d0 = datetime(2014,7,1)
-    d1 = datetime(2015,6,1)
+def load_contact_cert(scsv,acronyms):
     derr = datetime(1900,1,1)
-
     cid_map = build_cid_map(acronyms)
-    impd = init_import_dict(d0,d1,relativedelta(months=+1),acronyms)
 
+    ret = defaultdict(dict)
     reader = csv.reader(scsv.split('\n'), delimiter=',')
     for row in reader:
         certification_id = ""
         email = ""
-        attained_date = ""
         ad = derr
+        ed = derr
         try:
             geo, \
             region, \
@@ -143,15 +127,75 @@ def load_cert_and_contact(scsv,acronyms):
             if len(attained_date)>0:
                 ad = datetime.strptime(attained_date,'%Y/%m/%d')
                 ad = ad.replace(day=1)
+            if len(enrolled_date)>0:
+                ed = datetime.strptime(enrolled_date,'%Y/%m/%d')
+                ed = ed.replace(day=1)
         except: pass
 
         if certification_id in cid_map['reverse']:
-            if ad in impd:
-                impd[ad][cid_map['reverse'][certification_id]].add(email)
-            elif ad != derr:
-                impd[d0][cid_map['reverse'][certification_id]].add(email)
+            gname = cid_map['reverse'][certification_id]
+            if not gname in ret[email]:
+                ret[email][gname] = {'ad':[], 'ed':[]}
 
-    return impd
+            if ed == derr:
+                # Enrolled date needs to exit. skip garbage entry
+                pass
+            elif ad == derr:
+                # Not yet attained. Add enrolled date only
+                ret[email][gname]['ed'].append(ed)
+            elif ed > ad:
+                # date inconsistency. Use ad for both
+                ret[email][gname]['ad'].append(ad)
+                ret[email][gname]['ed'].append(ad)
+            else:
+                ret[email][gname]['ad'].append(ad)
+                ret[email][gname]['ed'].append(ed)
+    return ret
+'''
+ Cert By Month
+ {
+   2015/07/01: {
+     'VCP': {'ad': N0, 'ed': N1},
+     'VSP': {'ad': N0, 'ed': N1},
+     ...
+   },
+   2015/07/01: {
+     ...
+   },
+ }
+'''
+def init_cert_by_month(start,end,step,acronyms):
+    ret = defaultdict(dict)
+    c = start
+    while c < end:
+        for a in acronyms:
+            ret[c][a] = {'ad':0, 'ed':0}
+        c += step
+    return ret
+
+cc_table = {}
+def build_cert_by_month(scsv,cfgs):
+    acronyms = cfgs['cert_acronyms']
+
+    cc = load_contact_cert(scsv,acronyms)
+
+    ret = init_cert_by_month(cfgs['date_range']['start'],
+                             cfgs['date_range']['end'],
+                             cfgs['date_range']['step'],
+                             acronyms)
+
+    for email in cc:
+        for a in cc[email]:
+            for dkey in ['ad','ed']:
+                dlist = cc[email][a][dkey]
+                if len(dlist) > 0:
+                    d = min(dlist)
+                    if d in ret:
+                        ret[d][a][dkey] += 1
+                    elif d < cfgs['date_range']['start']:
+                        ret[cfgs['date_range']['start']][a][dkey] += 1
+    cc_table = ret
+    return ret
 
 '''
 Report Format
@@ -162,16 +206,16 @@ Report Format
    ...
  ]
 '''
-def import_cert_and_contact(scsv):
-    acronyms = ['VSP','VTSP','VCP6-DCV','VCA-DCV','VSP - CP','VOP-CP']
-    rep = [','.join(['Date'] + acronyms)]
+def import_cert_and_contact(scsv,dkey,cfgs):
+    rep = [','.join(['Date'] + cfgs['cert_acronyms'])]
 
-    cc = load_cert_and_contact(scsv,acronyms)
+    cc = cc_table if len(cc_table) > 0 else build_cert_by_month(scsv,cfgs)
+
     prev_cnt = defaultdict(int)
     for d in sorted(cc):
         row = [datetime.strftime(d,'%Y/%m/%d')]
-        for a in acronyms:
-            cnt = len(cc[d][a]) + prev_cnt[a]
+        for a in cfgs['cert_acronyms']:
+            cnt = cc[d][a][dkey] + prev_cnt[a]
             row.append(str(cnt))
             prev_cnt[a] = cnt
         rep.append(','.join(row))
