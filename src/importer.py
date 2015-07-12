@@ -233,7 +233,7 @@ def import_cert_and_contact(scsv,cfgs):
             row.append(str(prev_cnt['ed'][a]-prev_cnt['ad'][a]))
         rows.append(row)
 
-    return '\n'.join([ ','.join(row) for row in rows])
+    return rows
 
 
 

@@ -16,6 +16,10 @@ csv_data = ''
 with open(sys.argv[1], 'r') as f:
     csv_data = f.read()
 
-print import_cert_and_contact(csv_data,report_configs)
+rows = import_cert_and_contact(csv_data,report_configs)
+print '\n'.join([ ','.join(row) for row in rows])
+
+
+
 
 
