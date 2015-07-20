@@ -120,17 +120,18 @@ def load_contact_cert(scsv,acronyms):
             certification_id, \
             certication_type, \
             certification_desc, \
+            active_flag, \
             attained_date, \
-            enrolled_date,\
-            active_flag = row
+            enrolled_date = row
 
             if len(attained_date)>0:
-                ad = datetime.strptime(attained_date,'%Y/%m/%d')
+                ad = datetime.strptime(attained_date,'%Y-%m-%d')
                 ad = ad.replace(day=1)
             if len(enrolled_date)>0:
-                ed = datetime.strptime(enrolled_date,'%Y/%m/%d')
+                ed = datetime.strptime(enrolled_date,'%Y-%m-%d')
                 ed = ed.replace(day=1)
-        except: pass
+        except:
+            pass
 
         if certification_id in cid_map['reverse']:
             gname = cid_map['reverse'][certification_id]
