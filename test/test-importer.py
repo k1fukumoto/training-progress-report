@@ -1,6 +1,6 @@
 import unittest
 import sys
-sys.path.append("src")
+from collections import defaultdict
 from importer import build_cid_map, load_contact_cert
 
 CERTLIST = ['VSP','VTSP','VCP6-DCV','VCA-DCV']
@@ -30,11 +30,19 @@ class TestLoadContactCert(unittest.TestCase):
         self.data = load_contact_cert(scsv,self.certlist)
 
     def test_loaded_data(self):
+        counts = {'ad':defaultdict(int), 'ed':defaultdict(int)}
+
         for email, certdict in self.data.items():
             for cert in certdict:
                 self.assertTrue(cert in self.certlist)
                 for dtype in ['ad','ed']:
                     self.assertTrue(dtype in certdict[cert])
+                    if len(certdict[cert][dtype])>0:
+                        counts[dtype][cert] += 1
+
+        for cert in self.certlist:
+            self.assertTrue(cert in counts['ad'])
+            print "## {}: {}".format(cert,counts['ad'][cert])
 
 if __name__ == '__main__':
     unittest.main()
