@@ -23,7 +23,6 @@ class TestBuildCIDMap(unittest.TestCase):
 
         for cert in self.certlist:
             ids = self.data['forward'][cert]
-            self.assertTrue(self,len(ids) > 0)
             for id in ids:
                 self.assertEqual(self.data['reverse'][id],cert)
 

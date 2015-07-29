@@ -26,59 +26,24 @@ def build_cid_map(acronyms):
         cid_map['forward'][a] = set()
 
     with open('./data/trainings.csv','rb') as f:
-        reader = csv.reader(f)
-        cert_ids = [0]*6
+        reader = csv.DictReader(f)
         for row in reader:
-            category, \
-            focus_product, \
-            cb_version, \
-            acronym, \
-            naming_convention, \
-            official_course_name, \
-            ga, \
-            duration, \
-            cost, \
-            delivery_mode,\
-            delivery_location,\
-            course_url,\
-            acronym,\
-            cert_ids[0],\
-            cert_ids[1],\
-            cert_ids[2],\
-            cert_ids[3],\
-            cert_ids[4],\
-            cert_ids[5] = row
+            acronym = row['Accronym']
             if acronym in cid_map['forward']:
-                for id in cert_ids:
-                    if len(id) > 0:
-                        cid_map['forward'][acronym].add(id)
-                        cid_map['reverse'][id] = acronym
+                for cidkey in [row["Cert ID {}".format(id)] for id in range(1,6)]:
+                    if len(cidkey) > 0:
+                        cid_map['forward'][acronym].add(cidkey)
+                        cid_map['reverse'][cidkey] = acronym
 
     with open('./data/certifications.csv','rb') as f:
-        reader = csv.reader(f)
-        cert_ids = [0]*6
+        reader = csv.DictReader(f)
         for row in reader:
-            cb_version,\
-            acronym,\
-            exam,\
-            type,\
-            duration,\
-            cost,\
-            waived,\
-            public_information,\
-            acronym,\
-            cert_ids[0],\
-            cert_ids[1],\
-            cert_ids[2],\
-            cert_ids[3],\
-            cert_ids[4] = row
+            acronym = row['Acronym']
             if acronym in cid_map['forward']:
-                for id in cert_ids:
-                    try:
-                        if len(id) > 0:
-                            cid_map['forward'][acronym].add(id)
-                            cid_map['reverse'][id] = acronym
-                    except: pass
+                for cidkey in [row["Cert ID {}".format(id)] for id in range(1,5)]:
+                    if len(cidkey) > 0:
+                        cid_map['forward'][acronym].add(cidkey)
+                        cid_map['reverse'][cidkey] = acronym
     return cid_map
 
 '''
